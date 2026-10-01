@@ -66,13 +66,42 @@ ORG_NAME_PATTERNS = [
 ]
 
 
+# 확정된 공식 명칭 — 문서에 정확히 이 표기로 등장하면 정답으로 보고 canonical로 고정한다.
+# (SKILL.md 핵심 원칙의 정식명칭 규칙과 동일)
+OFFICIAL_NAMES = [
+    '전남광주통합특별시교육청',
+]
+
+
 def extract_candidates(text: str) -> list[str]:
-    """명칭 후보를 텍스트에서 추출"""
-    candidates = []
+    """명칭 후보를 텍스트에서 추출
+
+    서로 다른 패턴이 같은 위치의 문자열을 겹쳐서 잡으면(예: '…교육청'을 ORG 패턴이,
+    그 앞부분 '…교육'을 EVENT 패턴이 동시에 추출) 실제로는 한 번 등장한 명칭이
+    '축약 혼용'으로 오탐된다. 그래서 다른 후보의 위치 범위에 완전히 포함되는
+    짧은 후보는 버리고, 가장 긴 후보만 남긴다.
+    """
+    spans = []
     for pattern in EVENT_NAME_PATTERNS + ORG_NAME_PATTERNS:
-        found = re.findall(pattern, text)
-        candidates.extend([f.strip() for f in found if len(f.strip()) >= 4])
-    return candidates
+        for m in re.finditer(pattern, text):
+            raw = m.group(0)
+            stripped = raw.strip()
+            if len(stripped) < 4:
+                continue
+            start = m.start() + (len(raw) - len(raw.lstrip()))
+            end = start + len(stripped)
+            spans.append((start, end, stripped))
+
+    # 긴 것부터 확정하고, 이미 확정된 범위 안에 완전히 들어가는 후보는 제외
+    spans.sort(key=lambda s: (-(s[1] - s[0]), s[0]))
+    kept = []
+    for start, end, name in spans:
+        if any(ks <= start and end <= ke for ks, ke, _ in kept):
+            continue
+        kept.append((start, end, name))
+
+    kept.sort(key=lambda s: s[0])
+    return [name for _, _, name in kept]
 
 
 # ==============================
@@ -226,8 +255,9 @@ def analyze_naming(text: str, target_year: str) -> dict:
         if len(group) < 2:
             continue
 
-        # 가장 많이 등장한 것을 공식명으로 추정
-        canonical = max(group, key=lambda x: counts.get(x, 0))
+        # 확정된 공식 명칭이 그룹에 있으면 그것을 canonical로 고정, 없으면 최빈값으로 추정
+        official = [g for g in group if g in OFFICIAL_NAMES]
+        canonical = official[0] if official else max(group, key=lambda x: counts.get(x, 0))
         variants = [v for v in group if v != canonical]
 
         # 이슈 타입 판단
@@ -238,6 +268,10 @@ def analyze_naming(text: str, target_year: str) -> dict:
         else:
             issue_type = "유사명혼용"
             recommendation = f"'{canonical}'과 유사한 명칭이 혼용됩니다. 공식 명칭을 확인하고 통일하세요."
+
+        if official:
+            recommendation = (f"'{canonical}'은 확정된 정식 명칭입니다. "
+                              f"변형 표기({', '.join(variants)})를 '{canonical}'으로 통일하세요.")
 
         # 이미 연도혼용으로 처리된 그룹과 중복 방지
         if not any(canonical in str(yi.get('variants', '')) or canonical == yi.get('canonical', '') for yi in year_issues):
