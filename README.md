@@ -23,7 +23,7 @@
 ### 모드 공통 기능
 
 - 🔗 **선행·후속 문서 교차 검증**: 같은 사안을 다루는 문서([계획] 기안문 → [신청·안내] 기안문 등)가 대화에 함께 등장하면, 신청 기간·시각·장소·담당자·연락처 같은 세부조건이 서로 맞는지 자동으로 대조합니다.
-- 🏫 **기관 정식명칭 규칙**: "전남광주통합특별시교육청"은 정식 명칭으로 인정하고, 어순·글자가 달라진 변형 표기만 오류로 지적합니다.
+- 🏫 **기관 정식명칭 규칙**: 사용자가 설정한 정식 기관명은 정답으로 인정하고, 어순·글자가 달라진 변형 표기만 오류로 지적합니다. (아래 "⚙ 처음 설정" 참고)
 - 👤 **인물명 확인 요청**: 문서 속 담당자·책임자 이름을 뽑아 실제 해당자가 맞는지 사용자에게 확인을 요청합니다. 전화번호는 기본으로 일부를 가려서 보여 줍니다.
 
 ---
@@ -36,6 +36,7 @@ korean-official-doc-analyzer/
 ├── README.md              ← 이 파일
 ├── LICENSE                ← MIT License
 ├── index.html             ← 스킬 소개 페이지
+├── user_config.example.json ← 기관 설정 예시 (복사해 user_config.json으로 사용)
 ├── agents/
 │   └── openai.yaml        ← Codex(OpenAI) 에이전트용 스킬 메타데이터
 └── scripts/
@@ -45,6 +46,31 @@ korean-official-doc-analyzer/
     ├── extract_persons.py ← 인물명(책임자·담당자·연락처) 추출
     └── compare_docs.py    ← 두 문서 비교 (연도변경 모드 B)
 ```
+
+---
+
+## ⚙ 처음 설정 (기관 정보)
+
+이 스킬에는 특정 기관명이나 전화번호가 들어 있지 않습니다. 기관 정보는 두 가지 방법 중 하나로 넣습니다.
+
+**방법 1 — 실행할 때 입력 (설정 없이 바로 사용)**  
+처음 점검을 요청하면 Claude가 소속 기관의 정식 명칭, 부서·센터명, 대표 전화번호를 한 번 묻습니다. 모르면 "건너뛰기"라고 답하면 됩니다. 입력한 값은 그 대화에서만 쓰입니다.
+
+**방법 2 — 설정 파일 (매번 묻지 않게 하기)**  
+1. `user_config.example.json`을 복사해 `user_config.json`으로 이름을 바꿉니다.
+2. 값을 채웁니다.
+
+```json
+{
+  "official_org_names": ["○○교육청"],
+  "department": "○○센터",
+  "org_phone": "000-000-0000"
+}
+```
+
+3. 스킬 폴더를 다시 zip으로 묶어 설치합니다.
+
+> `user_config.json`은 `.gitignore`에 등록되어 있어 GitHub에 올라가지 않습니다. 개인 기관 정보는 공개 저장소에 올리지 마세요.
 
 ---
 
@@ -148,8 +174,8 @@ python3 scripts/section_parser.py --input-file doc.txt --current-year 2026
 # 날짜·요일·연도 검증
 python3 scripts/verify_dates.py --input-file doc.txt --current-year 2026
 
-# 명칭 일관성 검증
-python3 scripts/check_naming.py --input-file doc.txt --current-year 2026
+# 명칭 일관성 검증 (정식 기관명은 선택, 여러 번 지정 가능)
+python3 scripts/check_naming.py --input-file doc.txt --current-year 2026 --official-name "○○교육청"
 
 # 인물명 추출
 python3 scripts/extract_persons.py --input-file doc.txt

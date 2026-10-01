@@ -1,0 +1,8 @@
+{
+  "_설명": "이 파일을 복사해 user_config.json으로 이름을 바꾸고 값을 채우세요. user_config.json은 .gitignore에 등록되어 GitHub에 올라가지 않습니다.",
+  "official_org_names": [
+    "○○교육청"
+  ],
+  "department": "○○센터",
+  "org_phone": "000-000-0000"
+}
