@@ -1,0 +1,7 @@
+interface:
+  display_name: "대한민국 공문서 분석"
+  short_description: "공문서의 날짜·표현·명칭·담당자를 체계적으로 점검"
+  default_prompt: "Use $korean-official-doc-analyzer to review this Korean official document and report precise corrections."
+
+policy:
+  allow_implicit_invocation: false
