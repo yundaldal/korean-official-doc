@@ -1,0 +1,11 @@
+{
+  "$schema": "https://skills.sh/schemas/skills.sh.schema.json",
+  "notGrouped": "top",
+  "groupings": [
+    {
+      "title": "공문서 점검",
+      "description": "대한민국 공문서·계획서의 날짜·요일·명칭 검증과 연도변경 분석 스킬.",
+      "skills": ["korean-official-doc-analyzer"]
+    }
+  ]
+}
