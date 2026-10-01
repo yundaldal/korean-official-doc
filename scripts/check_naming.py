@@ -36,7 +36,10 @@
       오탐할 수 있음 — 결과를 그대로 확정 짓지 말고 반드시 사람이 한 번 더 확인할 것
 """
 
+from __future__ import annotations
+
 import argparse
+import os
 import sys
 import re
 import json
@@ -67,10 +70,26 @@ ORG_NAME_PATTERNS = [
 
 
 # 확정된 공식 명칭 — 문서에 정확히 이 표기로 등장하면 정답으로 보고 canonical로 고정한다.
-# (SKILL.md 핵심 원칙의 정식명칭 규칙과 동일)
-OFFICIAL_NAMES = [
-    '전남광주통합특별시교육청',
-]
+# 특정 기관명을 코드에 넣지 않는다. 값은 실행 시 아래 두 경로로 채워진다.
+#   1) --official-name 인자 (여러 번 지정 가능)
+#   2) 스킬 폴더의 user_config.json → "official_org_names" 목록
+OFFICIAL_NAMES: list[str] = []
+
+CONFIG_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'user_config.json')
+
+
+def load_official_names(cli_names: list[str] | None) -> list[str]:
+    """CLI 인자와 user_config.json에서 정식 기관명 목록을 모은다 (없으면 빈 목록)."""
+    names = [n.strip() for n in (cli_names or []) if n and n.strip()]
+    try:
+        with open(CONFIG_PATH, encoding='utf-8') as f:
+            cfg = json.load(f)
+        for n in cfg.get('official_org_names', []) or []:
+            if isinstance(n, str) and n.strip() and n.strip() not in names:
+                names.append(n.strip())
+    except (FileNotFoundError, json.JSONDecodeError, OSError):
+        pass
+    return names
 
 
 def extract_candidates(text: str) -> list[str]:
@@ -298,6 +317,7 @@ def analyze_naming(text: str, target_year: str) -> dict:
 # ==============================
 
 def main():
+    cli_official = []
     # 구버전 하위 호환: check_naming.py <텍스트> <target_year>
     if len(sys.argv) >= 3 and not sys.argv[1].startswith('--'):
         text = sys.argv[1]
@@ -307,7 +327,10 @@ def main():
         parser.add_argument('--input-file', help='텍스트 파일 경로 (긴 문서는 반드시 이 옵션을 사용)')
         parser.add_argument('--text', help='텍스트 직접 입력 (짧은 경우에만 사용)')
         parser.add_argument('--current-year', dest='target_year', required=True, help='기준연도')
+        parser.add_argument('--official-name', action='append', default=[],
+                            help='확정된 정식 기관명 (여러 번 지정 가능). user_config.json 값과 합쳐진다.')
         args = parser.parse_args()
+        cli_official = args.official_name
 
         if args.input_file:
             with open(args.input_file, encoding='utf-8') as f:
@@ -319,6 +342,7 @@ def main():
             sys.exit(1)
         target_year = args.target_year
 
+    OFFICIAL_NAMES[:] = load_official_names(cli_official)
     result = analyze_naming(text, target_year)
     print(json.dumps(result, ensure_ascii=False, indent=2))
 
