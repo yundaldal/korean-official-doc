@@ -2,7 +2,7 @@ name: 스킬 zip 배포
 
 on:
   push:
-    branches: [main]
+    branches: [analyzer]
   workflow_dispatch:
 
 permissions:
