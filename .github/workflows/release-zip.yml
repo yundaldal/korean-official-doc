@@ -1,0 +1,29 @@
+name: 스킬 zip 배포
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  zip:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: zip 만들기 (폴더명·파일명에 main 없음)
+        run: git archive --format=zip --prefix=korean-official-doc-analyzer/ -o korean-official-doc-analyzer.zip HEAD
+
+      - name: Releases에 최신 zip 올리기
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete latest --cleanup-tag -y || true
+          gh release create latest korean-official-doc-analyzer.zip \
+            --target "${{ github.sha }}" \
+            --title "최신 스킬 다운로드" \
+            --notes "아래 Assets의 korean-official-doc-analyzer.zip 을 내려받으세요. 파일명과 폴더명을 바꾸지 않고 그대로 Claude에 올리면 됩니다." \
+            --latest
